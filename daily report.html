@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Tech Report</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+JP:wght@300;400;600&display=swap');
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #141720;
+    --border: #252a36;
+    --accent-ai: #00d4ff;
+    --accent-mfg: #ff6b2b;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --success: #22c55e;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans JP', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-weight: 300;
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  h1 {
+    font-size: clamp(20px, 4vw, 28px);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .date-badge {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .gen-btn {
+    background: linear-gradient(135deg, #00d4ff22, #ff6b2b22);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 12px 24px;
+    cursor: pointer;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+    white-space: nowrap;
+    align-self: center;
+  }
+
+  .gen-btn:hover:not(:disabled) {
+    border-color: var(--accent-ai);
+    background: linear-gradient(135deg, #00d4ff33, #ff6b2b11);
+    box-shadow: 0 0 20px #00d4ff22;
+  }
+
+  .gen-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* API Key bar */
+  .apikey-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    flex-wrap: wrap;
+  }
+
+  .apikey-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+
+  .apikey-input {
+    flex: 1;
+    min-width: 160px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .apikey-input:focus { border-color: var(--accent-ai); }
+  .apikey-input::placeholder { color: var(--muted); opacity: 1; }
+
+  .apikey-save {
+    background: #00d4ff22;
+    border: 1px solid var(--accent-ai);
+    color: var(--accent-ai);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+    transition: background 0.2s;
+  }
+
+  .apikey-save:hover { background: #00d4ff44; }
+
+  .apikey-status {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .key-ok { color: var(--success); }
+  .key-ng { color: #f87171; }
+
+  /* Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .ai-dot  { background: var(--accent-ai);  box-shadow: 0 0 8px var(--accent-ai); }
+  .mfg-dot { background: var(--accent-mfg); box-shadow: 0 0 8px var(--accent-mfg); }
+
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .panel-body { padding: 18px; min-height: 200px; }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 180px;
+    gap: 10px;
+    color: var(--muted);
+  }
+
+  .empty-icon { font-size: 28px; opacity: 0.4; }
+  .empty-text { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; }
+
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 180px;
+    gap: 14px;
+  }
+
+  .spinner {
+    width: 28px; height: 28px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent-ai);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .mfg-loading .spinner { border-top-color: var(--accent-mfg); }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* Topics */
+  .topic {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    animation: fadeIn 0.4s ease forwards;
+    opacity: 0;
+  }
+
+  .topic:last-child { border-bottom: none; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .topic:nth-child(1) { animation-delay: 0.05s; }
+  .topic:nth-child(2) { animation-delay: 0.15s; }
+  .topic:nth-child(3) { animation-delay: 0.25s; }
+
+  .topic-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 5px;
+    letter-spacing: 0.1em;
+  }
+
+  .topic-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+
+  .ai-title  { color: var(--accent-ai); }
+  .mfg-title { color: var(--accent-mfg); }
+
+  .topic-body {
+    font-size: 13px;
+    line-height: 1.75;
+    color: #94a3b8;
+  }
+
+  .topic-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    opacity: 0.55;
+    transition: opacity 0.2s;
+  }
+
+  .topic-link:hover { opacity: 1; }
+  .ai-link  { color: var(--accent-ai); }
+  .mfg-link { color: var(--accent-mfg); }
+
+  /* Status */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .status-text { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+  .error-msg {
+    color: #f87171;
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">// Daily Tech Intelligence</div>
+    <h1>Hot Topics Report</h1>
+    <div class="date-badge" id="dateBadge">—</div>
+  </div>
+  <button class="gen-btn" id="genBtn" onclick="generateReport()">▶ レポート生成</button>
+</header>
+
+<!-- API Key bar -->
+<div class="apikey-bar">
+  <span class="apikey-label">API KEY</span>
+  <input class="apikey-input" id="apikeyInput" type="password" placeholder="sk-ant-..." autocomplete="off" />
+  <button class="apikey-save" onclick="saveKey()">保存</button>
+  <span class="apikey-status" id="keyStatus"></span>
+</div>
+
+<div class="grid">
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-dot ai-dot"></div>
+      <div class="panel-title">AI 領域</div>
+    </div>
+    <div class="panel-body" id="aiPanel">
+      <div class="empty-state">
+        <div class="empty-icon">◎</div>
+        <div class="empty-text">AWAITING FETCH</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-dot mfg-dot"></div>
+      <div class="panel-title">製造業 × 3D 利活用</div>
+    </div>
+    <div class="panel-body" id="mfgPanel">
+      <div class="empty-state">
+        <div class="empty-icon">◎</div>
+        <div class="empty-text">AWAITING FETCH</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div class="status-text" id="statusText">— READY —</div>
+  <div class="status-text">MODEL: claude-sonnet-4-6 + web_search</div>
+</div>
+
+<script>
+// Date
+const now = new Date();
+document.getElementById('dateBadge').textContent =
+  now.toLocaleDateString('ja-JP', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
+
+// --- API Key ---
+const KEY_STORE = 'dtr_apikey';
+
+function saveKey() {
+  const val = document.getElementById('apikeyInput').value.trim();
+  if (!val.startsWith('sk-ant-')) {
+    setKeyStatus('⚠ sk-ant- で始まるキーを入力してください', false);
+    return;
+  }
+  localStorage.setItem(KEY_STORE, val);
+  setKeyStatus('✓ 保存しました', true);
+}
+
+function loadKey() {
+  const k = localStorage.getItem(KEY_STORE) || '';
+  if (k) {
+    document.getElementById('apikeyInput').value = k;
+    setKeyStatus('✓ 読み込み済み', true);
+  }
+  return k;
+}
+
+function setKeyStatus(msg, ok) {
+  const el = document.getElementById('keyStatus');
+  el.textContent = msg;
+  el.className = 'apikey-status ' + (ok ? 'key-ok' : 'key-ng');
+}
+
+function getKey() {
+  return document.getElementById('apikeyInput').value.trim();
+}
+
+loadKey();
+
+// --- Loading / Render ---
+function setLoading(panelId, isAi) {
+  document.getElementById(panelId).innerHTML = `
+    <div class="loading ${isAi ? '' : 'mfg-loading'}">
+      <div class="spinner"></div>
+      <div class="loading-text">WEB SEARCH + GENERATING...</div>
+    </div>`;
+}
+
+function renderTopics(panelId, topics, colorClass, linkClass) {
+  const html = topics.map((t, i) => `
+    <div class="topic">
+      <div class="topic-num">TOPIC ${String(i+1).padStart(2,'0')}</div>
+      <div class="topic-title ${colorClass}">${t.title}</div>
+      <div class="topic-body">${t.body}</div>
+      ${t.url ? `<a class="topic-link ${linkClass}" href="${t.url}" target="_blank" rel="noopener">↗ 記事を読む</a>` : ''}
+    </div>`).join('');
+  document.getElementById(panelId).innerHTML = html;
+}
+
+// --- Fetch ---
+async function fetchTopics(prompt, apiKey) {
+  let rawBody = null;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1200,
+        system: 'あなたは技術リサーチャーです。必ずJSON配列のみを返してください。前置き・説明文・マークダウン記法（バッククォート等）は一切不要です。出力形式（厳守）: [{"title":"タイトル30字以内","body":"120〜150字の日本語解説","url":"関連URL"},{"title":"...","body":"...","url":"..."},{"title":"...","body":"...","url":"..."}] 最初の文字は [ 、最後の文字は ] であること。',
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    rawBody = await res.text();
+    showDebug(rawBody);
+
+    if (!res.ok) {
+      const errObj = JSON.parse(rawBody);
+      throw new Error(errObj.error?.message || 'HTTP ' + res.status);
+    }
+
+    const data = JSON.parse(rawBody);
+    const text = (data.content || [])
+      .filter(b => b.type === 'text')
+      .map(b => b.text)
+      .join('');
+
+    if (!text) throw new Error('テキストブロックなし');
+
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error('JSON配列なし');
+
+    return JSON.parse(match[0]);
+
+  } catch(e) {
+    if (rawBody) showDebug(rawBody);
+    throw e;
+  }
+}
+
+function showDebug(raw) {
+  let el = document.getElementById('debugBox');
+  if (!el) {
+    el = document.createElement('pre');
+    el.id = 'debugBox';
+    el.style.cssText = 'background:#0a0c10;border:1px solid #333;color:#94a3b8;font-size:10px;padding:12px;margin-top:16px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;border-radius:4px;max-height:200px;overflow-y:auto;';
+    document.querySelector('.status-bar').after(el);
+  }
+  el.textContent = raw.slice(0, 800);
+}
+
+// --- Main ---
+async function generateReport() {
+  const apiKey = getKey();
+  if (!apiKey.startsWith('sk-ant-')) {
+    setKeyStatus('⚠ APIキーを入力して保存してください', false);
+    return;
+  }
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  document.getElementById('statusText').innerHTML =
+    '<span class="status-dot"></span>FETCHING LATEST INTELLIGENCE...';
+
+  const today = now.toLocaleDateString('ja-JP');
+  setLoading('aiPanel', true);
+  setLoading('mfgPanel', false);
+
+  const aiPrompt = `${today}時点での「AI領域」最新ホットトピック3点をウェブ検索で調べてください。LLM・生成AI・AIエージェント・規制・スタートアップなど、直近1〜2週間のニュースを重視。`;
+  const mfgPrompt = `${today}時点での「製造業における3D技術利活用」最新ホットトピック3点をウェブ検索で調べてください。3Dプリンティング・デジタルツイン・3Dスキャン・CAD/CAM・スマートファクトリーなど、直近1〜2週間のニュースを重視。`;
+
+  const [aiResult, mfgResult] = await Promise.allSettled([
+    fetchTopics(aiPrompt, apiKey),
+    fetchTopics(mfgPrompt, apiKey)
+  ]);
+
+  if (aiResult.status === 'fulfilled') {
+    renderTopics('aiPanel', aiResult.value, 'ai-title', 'ai-link');
+  } else {
+    document.getElementById('aiPanel').innerHTML =
+      `<div class="error-msg">⚠ 取得失敗: ${aiResult.reason.message}<br><small style="word-break:break-all;opacity:0.7">${aiResult.reason.detail||''}</small></div>`;
+  }
+
+  if (mfgResult.status === 'fulfilled') {
+    renderTopics('mfgPanel', mfgResult.value, 'mfg-title', 'mfg-link');
+  } else {
+    document.getElementById('mfgPanel').innerHTML =
+      `<div class="error-msg">⚠ 取得失敗: ${mfgResult.reason.message}<br><small style="word-break:break-all;opacity:0.7">${mfgResult.reason.detail||''}</small></div>`;
+  }
+
+  const ts = new Date().toLocaleTimeString('ja-JP');
+  document.getElementById('statusText').innerHTML =
+    `<span class="status-dot"></span>LAST UPDATED: ${ts}`;
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>
